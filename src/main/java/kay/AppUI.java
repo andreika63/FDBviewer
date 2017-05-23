@@ -2,7 +2,6 @@ package kay;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
-import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.spring.annotation.SpringUI;
@@ -20,7 +19,7 @@ import java.util.List;
 @Theme("valo") //Тема
 @SpringUI
 public class AppUI extends UI {
-    private Grid grid = new Grid();
+    private AppGrid<FDBentry> grid = new AppGrid(FDBentry.class);
     private TextField filterText = new TextField();
     private Button clearFilterTextBtn = new Button(FontAwesome.TIMES);
     private TextField ipAddress = new TextField();
@@ -39,7 +38,7 @@ public class AppUI extends UI {
     protected void init(VaadinRequest vaadinRequest) {
         final VerticalLayout root = new VerticalLayout();
         root.setSizeFull();
-        root.setMargin(true);
+        root.setMargin(false);
         root.setSpacing(true);
         setContent(root);
 
@@ -47,8 +46,8 @@ public class AppUI extends UI {
         getFdbLayout.setStyleName(ValoTheme.LAYOUT_COMPONENT_GROUP);
         getFdbLayout.addComponents(ipAddress, getFdbBtn,getIfBtn,getLLDPBtn);
         ipAddress.setValue("192.168.1.");
-        ipAddress.addTextChangeListener(e -> {
-            getFdbBtn.setEnabled(iav.isValidInet4Address(e.getText()));
+        ipAddress.addValueChangeListener(e -> {
+            getFdbBtn.setEnabled(iav.isValidInet4Address(e.getValue()));
             getLLDPBtn.setEnabled(getFdbBtn.isEnabled());
             getIfBtn.setEnabled(getFdbBtn.isEnabled());
         });
@@ -68,18 +67,24 @@ public class AppUI extends UI {
         getIfBtn.addClickListener(e -> showInterfaces());
 
         clearFilterTextBtn.setDescription("Clear filter");
-        filterText.setInputPrompt("row filter...");
+        filterText.setPlaceholder("row filter...");
         filterText.setWidth(200.0F,Unit.PIXELS);
-        filterText.addTextChangeListener(e -> {
+        filterText.addValueChangeListener(e -> {
             if (data != null)
-                grid.setContainerDataSource(new BeanItemContainer<>(FDBentry.class, filterData(data, e.getText().replaceAll("[-:]", ""))));
+                grid.setItems(filterData(data, e.getValue().replaceAll("[-:]", "")));
         });
         clearFilterTextBtn.addClickListener(clickEvent -> {
             filterText.clear();
             if (data != null)
-                grid.setContainerDataSource(new BeanItemContainer<>(FDBentry.class, data));
+                grid.setItems(data);
         });
-        //clearFilterTextBtn.add
+        grid.setColumns("portNum","portName","portAlias","mac","vlan");
+        grid.addTextFilter("portNum", HasValueFilter.Type.CONTAINS,true);
+        grid.addTextFilter("portName", HasValueFilter.Type.CONTAINS,true);
+        grid.addTextFilter("portAlias", HasValueFilter.Type.CONTAINS,true);
+        grid.addTextFilter("mac", HasValueFilter.Type.CONTAINS,true);
+        grid.addTextFilter("vlan", HasValueFilter.Type.CONTAINS,true);
+        grid.setEnabledFilters(false);
 
         final CssLayout filtering = new CssLayout();
         filtering.setWidth(100.0F, Unit.PERCENTAGE);
@@ -114,7 +119,7 @@ public class AppUI extends UI {
             layout.setMargin(true);
             lldpWindow.setContent(layout);
             Grid grid = new Grid();
-            grid.setContainerDataSource(new BeanItemContainer<>(IFentry.class,ifc));
+            grid.setItems(ifc);
             grid.setColumnOrder("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
             grid.setColumns("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
             layout.addComponent(grid);
@@ -138,7 +143,7 @@ public class AppUI extends UI {
             layout.setMargin(true);
             lldpWindow.setContent(layout);
             Grid grid = new Grid();
-            grid.setContainerDataSource(new BeanItemContainer<>(LLDPentry.class,lldps));
+            grid.setItems(lldps);
             grid.setColumnOrder("localPortNum","localPortName","localPortAlias","remoteIpAddress","remoteSysName","remotePortName"
                     ,"remotePortAlias","remoteSysDesc");
             layout.addComponent(grid);
@@ -158,13 +163,14 @@ public class AppUI extends UI {
 
     private void update() {
 //     filterText.clear();
-        grid.getContainerDataSource().removeAllItems();
+        //grid.getContainerDataSource().removeAllItems();
 //      label.setValue("Получаем данные коммутатора " + ipAddress.getValue() + "...");
         data = snmpWalk.getFDB(ipAddress.getValue(), community);
+        grid.setEnabledFilters(data != null ? data.size() > 0 : false);
         if (data != null && data.size() > 0) {
-            grid.setContainerDataSource(new BeanItemContainer<>(FDBentry.class, filterData(data, filterText.getValue().replaceAll("[-:]", ""))));
+            grid.setItems(filterData(data, filterText.getValue().replaceAll("[-:]", "")));
             grid.setColumnOrder("portNum", "portName", "portAlias", "mac", "vlan");
-            grid.addItemClickListener(e -> Notification.show(Vendor.getVendor(e.getItem().getItemProperty("mac").getValue().toString())));
+            grid.addItemClickListener(e -> Notification.show(Vendor.getVendor(e.getItem().getMac())));
             label.setValue("FDB " + ipAddress.getValue() + " [" + data.size() + "]");
             //filterText.setEnabled(true);
             //clearFilterTextBtn.setEnabled(true);
