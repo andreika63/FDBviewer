@@ -59,6 +59,11 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.vaadin</groupId>-->
+            <!--<artifactId>vaadin-push</artifactId>-->
+            <!--<version>${vaadin.version}</version>-->
+        <!--</dependency>-->
 
     </dependencies>
 

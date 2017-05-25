@@ -2,7 +2,7 @@ package kay;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
-import com.vaadin.server.FontAwesome;
+import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.ui.*;
@@ -14,18 +14,18 @@ import org.springframework.beans.factory.annotation.Value;
 import java.util.ArrayList;
 import java.util.List;
 
-
+//@Push(transport = Transport.WEBSOCKET_XHR)
 @Title("FDB viewer") //заголовок в окне браузера
 @Theme("valo") //Тема
 @SpringUI
 public class AppUI extends UI {
     private AppGrid<FDBentry> grid = new AppGrid(FDBentry.class);
     private TextField filterText = new TextField();
-    private Button clearFilterTextBtn = new Button(FontAwesome.TIMES);
+    private Button clearFilterTextBtn = new Button(VaadinIcons.CLOSE);
     private TextField ipAddress = new TextField();
-    private Button getFdbBtn = new Button(FontAwesome.ARROW_DOWN);
-    private Button getLLDPBtn = new Button(FontAwesome.EYE);
-    private Button getIfBtn = new Button(FontAwesome.BOOK);
+    private Button getFdbBtn = new Button(VaadinIcons.ARROW_DOWN);
+    private Button getLLDPBtn = new Button(VaadinIcons.EYE);
+    private Button getIfBtn = new Button(VaadinIcons.BOOK);
     private InetAddressValidator iav = InetAddressValidator.getInstance();
     @Autowired
     private SnmpWalk snmpWalk;
@@ -79,11 +79,11 @@ public class AppUI extends UI {
                 grid.setItems(data);
         });
         grid.setColumns("portNum","portName","portAlias","mac","vlan");
-        grid.addTextFilter("portNum", HasValueFilter.Type.CONTAINS,true);
-        grid.addTextFilter("portName", HasValueFilter.Type.CONTAINS,true);
-        grid.addTextFilter("portAlias", HasValueFilter.Type.CONTAINS,true);
-        grid.addTextFilter("mac", HasValueFilter.Type.CONTAINS,true);
-        grid.addTextFilter("vlan", HasValueFilter.Type.CONTAINS,true);
+        grid.addTextFilter("portNum", HasValueFilter.Type.CONTAINS,true,"150");
+        grid.addTextFilter("portName", HasValueFilter.Type.CONTAINS,true,"150");
+        grid.addTextFilter("portAlias", HasValueFilter.Type.CONTAINS,true,"150");
+        grid.addTextFilter("mac", HasValueFilter.Type.CONTAINS,true,"150");
+        grid.addTextFilter("vlan", HasValueFilter.Type.EQUALS,true,"150");
         grid.setEnabledFilters(false);
 
         final CssLayout filtering = new CssLayout();
@@ -162,10 +162,10 @@ public class AppUI extends UI {
 
 
     private void update() {
-//     filterText.clear();
-        //grid.getContainerDataSource().removeAllItems();
-//      label.setValue("Получаем данные коммутатора " + ipAddress.getValue() + "...");
+        //push does not work ;(
+        //access(() -> label.setValue("Получаем данные коммутатора " + ipAddress.getValue() + "... "));
         data = snmpWalk.getFDB(ipAddress.getValue(), community);
+        grid.clearAllFilers();
         grid.setEnabledFilters(data != null ? data.size() > 0 : false);
         if (data != null && data.size() > 0) {
             grid.setItems(filterData(data, filterText.getValue().replaceAll("[-:]", "")));

@@ -9,6 +9,7 @@ import com.vaadin.ui.CssLayout;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.themes.ValoTheme;
+
 import java.util.Optional;
 
 
@@ -123,6 +124,11 @@ public class TextFieldWithClear extends CustomComponent implements HasValue<Stri
     @Override
     public void clear() {
         textField.clear();
+    }
+
+    @Override
+    public float getWidth() {
+        return textField.getWidth() * 1.618f;
     }
 }
 

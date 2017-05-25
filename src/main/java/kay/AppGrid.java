@@ -6,6 +6,7 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Grid;
 import com.vaadin.ui.components.grid.HeaderRow;
 import com.vaadin.ui.themes.ValoTheme;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class AppGrid<T> extends Grid<T> {
         if (filterRow == null)
             filterRow = appendHeaderRow();
         filterRow.getCell(columnId).setComponent(comboBox);
+        getColumn(columnId).setMinimumWidth(comboBox.getWidth());
         comboBox.addValueChangeListener(event -> {
             filters.get(columnId).setValue(event.getValue() != null ? event.getValue().toString() : null);
             applyFilters();
@@ -32,11 +34,16 @@ public class AppGrid<T> extends Grid<T> {
         return comboBox;
     }
     public void addTextFilter(String columnId, HasValueFilter.Type ftype){
-        addTextFilter(columnId,ftype,false);
+        addTextFilter(columnId,ftype,false,"150");
     }
 
-    public void addTextFilter(String columnId,HasValueFilter.Type ftype, boolean isIgnoreCase){
+    public void addTextFilter(String columnId, HasValueFilter.Type ftype,boolean isIgnoreCase){
+        addTextFilter(columnId,ftype,isIgnoreCase,"150");
+    }
+
+    public void addTextFilter(String columnId,HasValueFilter.Type ftype, boolean isIgnoreCase, String width){
         TextFieldWithClear textField = new TextFieldWithClear()
+                .withWidth(width)
                 .setStyle(ValoTheme.TEXTFIELD_TINY)
                 .withChangeListener(event -> {
                     filters.get(columnId).setValue(event != null ? event.getValue().toString() : null);
@@ -46,6 +53,7 @@ public class AppGrid<T> extends Grid<T> {
         if (filterRow == null)
             filterRow = appendHeaderRow();
         filterRow.getCell(columnId).setComponent(textField);
+        getColumn(columnId).setMinimumWidth(textField.getWidth());
         filters.put(columnId,new HasValueFilter(textField, ftype,isIgnoreCase));
 
     }
@@ -68,8 +76,8 @@ public class AppGrid<T> extends Grid<T> {
         filters.forEach((k,v) -> v.getComponent().clear());
     }
 
-    public void setEnabledFilters(boolean isVisible){
-        filterRow.getComponents().forEach(c -> c.setEnabled(isVisible));
+    public void setEnabledFilters(boolean isEnabled){
+        filterRow.getComponents().forEach(c -> c.setEnabled(isEnabled));
     }
 
 }
