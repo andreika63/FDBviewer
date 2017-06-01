@@ -118,7 +118,7 @@ public class AppUI extends UI {
             layout.setSizeFull();
             layout.setMargin(true);
             lldpWindow.setContent(layout);
-            Grid grid = new Grid();
+            AppGrid grid = new AppGrid(IFentry.class);
             grid.setItems(ifc);
             grid.setColumnOrder("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
             grid.setColumns("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
@@ -142,7 +142,7 @@ public class AppUI extends UI {
             layout.setSizeFull();
             layout.setMargin(true);
             lldpWindow.setContent(layout);
-            Grid grid = new Grid();
+            AppGrid grid = new AppGrid(LLDPentry.class);
             grid.setItems(lldps);
             grid.setColumnOrder("localPortNum","localPortName","localPortAlias","remoteIpAddress","remoteSysName","remotePortName"
                     ,"remotePortAlias","remoteSysDesc");
