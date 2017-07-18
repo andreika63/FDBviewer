@@ -19,6 +19,7 @@ import java.util.List;
 @Theme("valo") //Тема
 @SpringUI
 public class AppUI extends UI {
+    private final String REMOVE_REGEX = "[-:\\. ]";
     private AppGrid<FDBentry> grid = new AppGrid(FDBentry.class);
     private TextField filterText = new TextField();
     private Button clearFilterTextBtn = new Button(VaadinIcons.CLOSE);
@@ -26,6 +27,7 @@ public class AppUI extends UI {
     private Button getFdbBtn = new Button(VaadinIcons.ARROW_DOWN);
     private Button getLLDPBtn = new Button(VaadinIcons.EYE);
     private Button getIfBtn = new Button(VaadinIcons.BOOK);
+    private PasswordField communityField = new PasswordField();
     private InetAddressValidator iav = InetAddressValidator.getInstance();
     @Autowired
     private SnmpWalk snmpWalk;
@@ -44,13 +46,9 @@ public class AppUI extends UI {
 
         final CssLayout getFdbLayout = new CssLayout();
         getFdbLayout.setStyleName(ValoTheme.LAYOUT_COMPONENT_GROUP);
-        getFdbLayout.addComponents(ipAddress, getFdbBtn,getIfBtn,getLLDPBtn);
+        getFdbLayout.addComponents(ipAddress, getFdbBtn, getIfBtn, getLLDPBtn);
         ipAddress.setValue("192.168.1.");
-        ipAddress.addValueChangeListener(e -> {
-            getFdbBtn.setEnabled(iav.isValidInet4Address(e.getValue()));
-            getLLDPBtn.setEnabled(getFdbBtn.isEnabled());
-            getIfBtn.setEnabled(getFdbBtn.isEnabled());
-        });
+        ipAddress.addValueChangeListener(e -> adjustButtons(validateInputs(e.getValue(), communityField.getValue())));
 
         getFdbBtn.setEnabled(false);
         getFdbBtn.setDescription("Download FDB");
@@ -68,22 +66,25 @@ public class AppUI extends UI {
 
         clearFilterTextBtn.setDescription("Clear filter");
         filterText.setPlaceholder("row filter...");
-        filterText.setWidth(200.0F,Unit.PIXELS);
+        filterText.setWidth(200.0F, Unit.PIXELS);
         filterText.addValueChangeListener(e -> {
             if (data != null)
-                grid.setItems(filterData(data, e.getValue().replaceAll("[-:]", "")));
+                grid.setItems(filterData(data, e.getValue().replaceAll(REMOVE_REGEX, "")));
         });
         clearFilterTextBtn.addClickListener(clickEvent -> {
             filterText.clear();
             if (data != null)
                 grid.setItems(data);
         });
-        grid.setColumns("portNum","portName","portAlias","mac","vlan");
-        grid.addTextFilter("portNum", HasValueFilter.Type.CONTAINS,true,"150");
-        grid.addTextFilter("portName", HasValueFilter.Type.CONTAINS,true,"150");
-        grid.addTextFilter("portAlias", HasValueFilter.Type.CONTAINS,true,"150");
-        grid.addTextFilter("mac", HasValueFilter.Type.CONTAINS,true,"150");
-        grid.addTextFilter("vlan", HasValueFilter.Type.EQUALS,true,"150");
+        communityField.setPlaceholder("set community!");
+        communityField.addValueChangeListener(e -> adjustButtons(validateInputs(ipAddress.getValue(), e.getValue())));
+
+        grid.setColumns("portNum", "portName", "portAlias", "mac", "vlan");
+        grid.addTextFilter("portNum", HasValueFilter.Type.CONTAINS, true, "150");
+        grid.addTextFilter("portName", HasValueFilter.Type.CONTAINS, true, "150");
+        grid.addTextFilter("portAlias", HasValueFilter.Type.CONTAINS, true, "150");
+        grid.addTextFilter("mac", HasValueFilter.Type.CONTAINS, true, "150");
+        grid.addTextFilter("vlan", HasValueFilter.Type.EQUALS, true, "150");
         grid.setEnabledFilters(false);
 
         final CssLayout filtering = new CssLayout();
@@ -97,7 +98,7 @@ public class AppUI extends UI {
         topBar.setWidth(100.0F, Unit.PERCENTAGE);
         label.setSizeUndefined();//по умоланию 100%, topBar.setExpandRatio(filtering,1.0f); перекрывает этот label
         label.addStyleName("align-right");
-        topBar.addComponents(getFdbLayout, filtering, label);
+        topBar.addComponents(getFdbLayout, filtering, label, communityField);
         topBar.setComponentAlignment(label, Alignment.MIDDLE_RIGHT);
         topBar.setExpandRatio(filtering, 1.0f);
 
@@ -107,12 +108,14 @@ public class AppUI extends UI {
         root.addComponents(topBar, grid);
         root.setExpandRatio(grid, 1.0f);
         //snmpWalk = SnmpWalk.getInstance(); //
+
+        communityField.setValue(community);
     }
 
     private void showInterfaces() {
-        List<IFentry> ifc = snmpWalk.getInterfaces(ipAddress.getValue(), community);
-        if (ifc != null){
-            Window lldpWindow = new Window("ifMIB: "+ ipAddress.getValue());
+        List<IFentry> ifc = snmpWalk.getInterfaces(ipAddress.getValue(), communityField.getValue());
+        if (ifc != null) {
+            Window lldpWindow = new Window("ifMIB: " + ipAddress.getValue());
             //lldpWindow.setModal(true);
             VerticalLayout layout = new VerticalLayout();
             layout.setSizeFull();
@@ -120,11 +123,11 @@ public class AppUI extends UI {
             lldpWindow.setContent(layout);
             AppGrid grid = new AppGrid(IFentry.class);
             grid.setItems(ifc);
-            grid.setColumnOrder("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
-            grid.setColumns("ifIndex","ifDescr","ifAdminStatus","ifOperStatus","ifAlias");
+            grid.setColumnOrder("ifIndex", "ifDescr", "ifAdminStatus", "ifOperStatus", "ifAlias");
+            grid.setColumns("ifIndex", "ifDescr", "ifAdminStatus", "ifOperStatus", "ifAlias");
             layout.addComponent(grid);
             grid.setSizeFull();
-            layout.setExpandRatio(grid,1.0F);
+            layout.setExpandRatio(grid, 1.0F);
             lldpWindow.setWidth(90.0F, Unit.PERCENTAGE);
             lldpWindow.setHeight(70.0F, Unit.PERCENTAGE);
             lldpWindow.center();
@@ -134,9 +137,9 @@ public class AppUI extends UI {
     }
 
     private void showLLDP() {
-        List<LLDPentry> lldps = snmpWalk.getLLDP(ipAddress.getValue(), community);
-        if (lldps != null){
-            Window lldpWindow = new Window("LLDP: "+ ipAddress.getValue());
+        List<LLDPentry> lldps = snmpWalk.getLLDP(ipAddress.getValue(), communityField.getValue());
+        if (lldps != null) {
+            Window lldpWindow = new Window("LLDP: " + ipAddress.getValue());
             //lldpWindow.setModal(true);
             VerticalLayout layout = new VerticalLayout();
             layout.setSizeFull();
@@ -144,11 +147,11 @@ public class AppUI extends UI {
             lldpWindow.setContent(layout);
             AppGrid grid = new AppGrid(LLDPentry.class);
             grid.setItems(lldps);
-            grid.setColumnOrder("localPortNum","localPortName","localPortAlias","remoteIpAddress","remoteSysName","remotePortName"
-                    ,"remotePortAlias","remoteSysDesc");
+            grid.setColumnOrder("localPortNum", "localPortName", "localPortAlias", "remoteIpAddress", "remoteSysName", "remotePortName"
+                    , "remotePortAlias", "remoteSysDesc");
             layout.addComponent(grid);
             grid.setSizeFull();
-            layout.setExpandRatio(grid,1.0F);
+            layout.setExpandRatio(grid, 1.0F);
 
             lldpWindow.setWidth(90.0F, Unit.PERCENTAGE);
             lldpWindow.setHeight(70.0F, Unit.PERCENTAGE);
@@ -164,11 +167,11 @@ public class AppUI extends UI {
     private void update() {
         //push does not work ;(
         //access(() -> label.setValue("Получаем данные коммутатора " + ipAddress.getValue() + "... "));
-        data = snmpWalk.getFDB(ipAddress.getValue(), community);
+        data = snmpWalk.getFDB(ipAddress.getValue(), communityField.getValue());
         grid.clearAllFilers();
         grid.setEnabledFilters(data != null ? data.size() > 0 : false);
         if (data != null && data.size() > 0) {
-            grid.setItems(filterData(data, filterText.getValue().replaceAll("[-:]", "")));
+            grid.setItems(filterData(data, filterText.getValue().replaceAll(REMOVE_REGEX, "")));
             grid.setColumnOrder("portNum", "portName", "portAlias", "mac", "vlan");
             grid.addItemClickListener(e -> Notification.show(Vendor.getVendor(e.getItem().getMac())));
             label.setValue("FDB " + ipAddress.getValue() + " [" + data.size() + "]");
@@ -188,5 +191,21 @@ public class AppUI extends UI {
             if (e.toString().contains(filter.toLowerCase())) result.add(e);
         }
         return result;
+    }
+
+    private void adjustButtons(boolean isEnabled) {
+        getFdbBtn.setEnabled(isEnabled);
+        getLLDPBtn.setEnabled(isEnabled);
+        getIfBtn.setEnabled(isEnabled);
+    }
+
+    private boolean validateInputs(String ip, String community) {
+        if (community.length() == 0) {
+            communityField.setRequiredIndicatorVisible(true);
+            return false;
+        } else {
+            communityField.setRequiredIndicatorVisible(false);
+            return iav.isValidInet4Address(ip);
+        }
     }
 }
